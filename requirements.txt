@@ -1,0 +1,11 @@
+# Install on Raspberry Pi with:
+#   pip3 install -r requirements.txt
+#
+# RPi.GPIO and picamera2 are pre-installed on Raspberry Pi OS Bullseye.
+# Install system espeak separately: sudo apt install espeak
+
+bottle>=0.12
+luma.oled>=3.8
+Pillow>=9.0
+ultralytics>=8.0       # YOLOv8 — use nano model (yolov8n.pt) on Pi 4
+opencv-python-headless>=4.7

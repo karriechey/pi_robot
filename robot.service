@@ -1,0 +1,12 @@
+[Unit]
+Description=PAW Patrol Surveillance Robot
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/karrie/pi_robot/main.py
+WorkingDirectory=/home/karrie/pi_robot
+Restart=on-failure
+User=karrie
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAW Patrol Robot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      color: #f9c74f;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    #stream-container {
+      width: 100%;
+      max-width: 480px;
+      border: 3px solid #f9c74f;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+      margin-bottom: 14px;
+    }
+
+    #stream-container img {
+      width: 100%;
+      display: block;
+    }
+
+    #status-bar {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+
+    #status-bar span { color: #f9c74f; font-weight: bold; }
+
+    /* Mode toggle */
+    #mode-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: 2px solid #f9c74f;
+      border-radius: 8px;
+      background: transparent;
+      color: #f9c74f;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .mode-btn.active {
+      background: #f9c74f;
+      color: #1a1a2e;
+      font-weight: bold;
+    }
+
+    /* D-pad */
+    #dpad {
+      display: grid;
+      grid-template-areas:
+        ". up ."
+        "left stop right"
+        ". down .";
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .ctrl-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 10px;
+      border: none;
+      font-size: 1.8rem;
+      cursor: pointer;
+      background: #16213e;
+      color: #fff;
+      border: 2px solid #0f3460;
+      transition: background 0.1s, transform 0.05s;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    .ctrl-btn:active { background: #0f3460; transform: scale(0.94); }
+    #btn-up    { grid-area: up; }
+    #btn-down  { grid-area: down; }
+    #btn-left  { grid-area: left; }
+    #btn-right { grid-area: right; }
+    #btn-stop  { grid-area: stop; background: #e63946; border-color: #e63946; }
+    #btn-stop:active { background: #c1121f; }
+
+    #detected-items {
+      font-size: 0.9rem;
+      color: #90e0ef;
+      text-align: center;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🐾 PAW Patrol Robot</h1>
+
+  <div id="stream-container">
+    <img src="/stream" alt="Live feed" />
+  </div>
+
+  <div id="status-bar">
+    Mode: <span id="mode-label">–</span> &nbsp;|&nbsp;
+    Distance: <span id="dist-label">–</span> cm
+  </div>
+
+  <div id="mode-toggle">
+    <button class="mode-btn" id="btn-auto"  onclick="setMode('auto')">🤖 Auto</button>
+    <button class="mode-btn" id="btn-manual" onclick="setMode('manual')">🕹️ Manual</button>
+  </div>
+
+  <div id="dpad">
+    <button class="ctrl-btn" id="btn-up"    onpointerdown="cmd('forward')" onpointerup="cmd('stop')">▲</button>
+    <button class="ctrl-btn" id="btn-left"  onpointerdown="cmd('left')"   onpointerup="cmd('stop')">◀</button>
+    <button class="ctrl-btn" id="btn-stop"  onclick="cmd('stop')">■</button>
+    <button class="ctrl-btn" id="btn-right" onpointerdown="cmd('right')"  onpointerup="cmd('stop')">▶</button>
+    <button class="ctrl-btn" id="btn-down"  onpointerdown="cmd('backward')" onpointerup="cmd('stop')">▼</button>
+  </div>
+
+  <div id="detected-items"></div>
+
+  <script>
+    async function cmd(action) {
+      await fetch('/' + action).catch(() => {});
+    }
+
+    async function setMode(m) {
+      const res = await fetch('/mode/' + m).then(r => r.json()).catch(() => ({}));
+      updateModeUI(res.mode);
+    }
+
+    function updateModeUI(mode) {
+      document.getElementById('mode-label').textContent = mode === 'autonomous' ? 'Autonomous' : 'Manual';
+      document.getElementById('btn-auto').classList.toggle('active', mode === 'autonomous');
+      document.getElementById('btn-manual').classList.toggle('active', mode === 'manual');
+    }
+
+    async function pollStatus() {
+      try {
+        const s = await fetch('/status').then(r => r.json());
+        updateModeUI(s.mode);
+        document.getElementById('dist-label').textContent = s.distance ?? '–';
+        const items = s.detected && s.detected.length ? '👀 Spotted: ' + s.detected.join(', ') : '';
+        document.getElementById('detected-items').textContent = items;
+      } catch (_) {}
+    }
+
+    setInterval(pollStatus, 1500);
+    pollStatus();
+  </script>
+
+</body>
+</html>
