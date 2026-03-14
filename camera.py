@@ -10,7 +10,7 @@ import time
 from picamera2 import Picamera2
 from picamera2.encoders import JpegEncoder
 from picamera2.outputs import FileOutput
-from ultralytics import YOLO
+# from ultralytics import YOLO
 
 # ── Items we care about (COCO class names) ──
 TRACKED_LABELS = {"remote", "laptop", "cell phone", "backpack", "handbag", "suitcase"}
@@ -29,7 +29,7 @@ INFERENCE_EVERY_N_FRAMES = 5
 
 def setup():
     global _model
-    _model = YOLO(YOLO_MODEL)
+    _model = None  # YOLO disabled until ultralytics installed
 
 
 def _camera_loop():
@@ -54,15 +54,16 @@ def _camera_loop():
 
             # Run YOLO every N frames to keep CPU load manageable
             if frame_count % INFERENCE_EVERY_N_FRAMES == 0:
-                results = _model(frame, verbose=False)
-                found = []
-                for r in results:
-                    for box in r.boxes:
-                        label = r.names[int(box.cls)]
-                        if label in TRACKED_LABELS:
-                            found.append(label)
-                with _frame_lock:
-                    _detected_items = found
+                if _model is not None:
+                    results = _model(frame, verbose=False)
+                    found = []
+                    for r in results:
+                        for box in r.boxes:
+                            label = r.names[int(box.cls)]
+                            if label in TRACKED_LABELS:
+                                found.append(label)
+                    with _frame_lock:
+                        _detected_items = found
 
             time.sleep(0.03)   # ~30 fps cap
     finally:
