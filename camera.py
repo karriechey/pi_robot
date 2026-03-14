@@ -7,9 +7,8 @@ Tracked items: keys, wallet, laptop, cello case (mapped from COCO class names).
 import io
 import threading
 import time
-from picamera2 import Picamera2
-from picamera2.encoders import JpegEncoder
-from picamera2.outputs import FileOutput
+import picamera
+import picamera.array
 # from ultralytics import YOLO
 
 # ── Items we care about (COCO class names) ──
@@ -35,19 +34,22 @@ def setup():
 def _camera_loop():
     global _latest_frame, _detected_items, _running
 
-    picam2 = Picamera2()
-    config = picam2.create_video_configuration(main={"size": (640, 480)})
-    picam2.configure(config)
-    picam2.start()
+    with picamera.PiCamera() as camera:
+        camera.resolution = (640, 480)
+        camera.framerate = 30
+        stream = picamera.array.PiRGBArray(camera, size=(640, 480))
+        time.sleep(0.1)  # let sensor warm up
 
-    frame_count = 0
-    try:
-        while _running:
-            frame = picam2.capture_array()
+        frame_count = 0
+        import cv2
+        for _ in camera.capture_continuous(stream, format="bgr", use_video_port=True):
+            if not _running:
+                break
+
+            frame = stream.array
             frame_count += 1
 
             # JPEG encode for MJPEG stream
-            import cv2
             _, jpeg = cv2.imencode(".jpg", frame)
             with _frame_lock:
                 _latest_frame = jpeg.tobytes()
@@ -65,9 +67,8 @@ def _camera_loop():
                     with _frame_lock:
                         _detected_items = found
 
+            stream.truncate(0)
             time.sleep(0.03)   # ~30 fps cap
-    finally:
-        picam2.stop()
 
 
 def start():
