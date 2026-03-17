@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paw Patrol Robot — Remote Control Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #060c1a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Rajdhani', sans-serif;
+    padding: 20px;
+  }
+  .rc-shell {
+    background: #0a0f1e;
+    border-radius: 24px;
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+    border: 1px solid #1e2d50;
+  }
+  .rc-header { text-align: center; margin-bottom: 20px; }
+  .rc-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: #f5a623;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .rc-sub { font-size: 11px; color: #4a6080; letter-spacing: 2px; }
+  .camera-screen {
+    background: #060c1a;
+    border-radius: 12px;
+    border: 1px solid #1e2d50;
+    height: 160px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .camera-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(30,45,80,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,45,80,0.3) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .camera-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px; color: #2e7d32;
+    letter-spacing: 2px; position: relative; z-index: 2;
+  }
+  .camera-dot {
+    width: 6px; height: 6px; background: #4caf50;
+    border-radius: 50%; position: absolute; top: 10px; right: 10px;
+    animation: blink 1.5s infinite;
+  }
+  .camera-corners span {
+    position: absolute; width: 16px; height: 16px;
+    border-color: #f5a623; border-style: solid; opacity: 0.7;
+  }
+  .camera-corners span:nth-child(1) { top:8px;left:8px;border-width:2px 0 0 2px; }
+  .camera-corners span:nth-child(2) { top:8px;right:8px;border-width:2px 2px 0 0; }
+  .camera-corners span:nth-child(3) { bottom:8px;left:8px;border-width:0 0 2px 2px; }
+  .camera-corners span:nth-child(4) { bottom:8px;right:8px;border-width:0 2px 2px 0; }
+  .oled-face {
+    background: #001400; border: 1px solid #1a2d1a;
+    border-radius: 8px; width: 80px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; position: absolute; bottom: 10px; left: 10px;
+  }
+  .paw-badge {
+    position: absolute; bottom: 10px; right: 10px;
+    font-size: 11px; color: #f5a623;
+    font-family: 'Orbitron', monospace; opacity: 0.6;
+  }
+  .status-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .status-pill {
+    flex: 1; background: #0d1525; border: 1px solid #1e2d50;
+    border-radius: 8px; padding: 8px 10px; text-align: center;
+  }
+  .status-pill .slabel {
+    font-size: 9px; color: #4a6080; letter-spacing: 1px;
+    display: block; margin-bottom: 3px; font-family: 'Orbitron', monospace;
+  }
+  .status-pill .sval { font-size: 13px; font-weight: 600; color: #e0e8ff; }
+  .sval.green { color: #4caf50; }
+  .sval.amber { color: #f5a623; }
+  .sval.red   { color: #ef5350; }
+  .dpad-section { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+  .dpad {
+    display: grid;
+    grid-template-columns: 52px 52px 52px;
+    grid-template-rows: 52px 52px 52px;
+    gap: 4px; flex-shrink: 0;
+  }
+  .dpad-btn {
+    background: #0d1525; border: 1px solid #1e2d50;
+    border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s; user-select: none;
+  }
+  .dpad-btn:active, .dpad-btn.pressed {
+    background: #1a3060; border-color: #f5a623; transform: scale(0.93);
+  }
+  .dpad-btn svg { width: 20px; height: 20px; fill: #4a6080; }
+  .dpad-btn:active svg, .dpad-btn.pressed svg { fill: #f5a623; }
+  .dpad-center { background: #060c1a; border-radius: 50%; border: 1px solid #1e2d50; }
+  .dpad-empty { visibility: hidden; }
+  .side-controls { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .side-btn {
+    background: #0d1525; border: 1px solid #1e2d50;
+    border-left: 3px solid transparent; border-radius: 10px;
+    padding: 10px 12px; cursor: pointer;
+    font-family: 'Rajdhani', sans-serif; font-size: 12px;
+    font-weight: 600; letter-spacing: 1px; color: #7986cb;
+    text-align: left; display: flex; align-items: center; gap: 8px;
+    transition: all 0.15s;
+  }
+  .side-btn:hover { background: #131e35; }
+  .side-btn.active { background: #0d1a30; border-color: #1e2d50; border-left-color: #f5a623; color: #f5a623; }
+  .side-btn .dot { width: 8px; height: 8px; border-radius: 50%; background: #1e2d50; flex-shrink: 0; }
+  .side-btn.active .dot { background: #f5a623; }
+  .speed-section { margin-bottom: 16px; }
+  .speed-label {
+    font-family: 'Orbitron', monospace; font-size: 9px;
+    color: #4a6080; letter-spacing: 2px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .speed-label span { color: #f5a623; font-size: 12px; }
+  input[type=range] { width: 100%; accent-color: #f5a623; cursor: pointer; }
+  .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .action-btn {
+    background: #0d1525; border: 1px solid #1e2d50;
+    border-radius: 10px; padding: 12px; cursor: pointer;
+    font-family: 'Orbitron', monospace; font-size: 9px;
+    letter-spacing: 1px; color: #4a6080; transition: all 0.15s; text-align: center;
+  }
+  .action-btn:hover { background: #131e35; color: #7986cb; }
+  .action-btn.danger { color: #ef5350; border-color: #3a1515; }
+  .action-btn.danger:hover { background: #1a0808; border-color: #ef5350; }
+  .log-box {
+    background: #060c1a; border: 1px solid #1e2d50;
+    border-radius: 10px; padding: 10px 12px;
+    height: 80px; overflow-y: auto;
+    font-family: 'Orbitron', monospace; font-size: 9px; color: #2e7d32;
+  }
+  .log-entry { margin-bottom: 3px; }
+  .log-entry .ts { color: #1e3a1e; margin-right: 6px; }
+  .log-entry.warn { color: #f5a623; }
+  .log-entry.info { color: #4fc3f7; }
+  .kb-hint {
+    text-align: center; margin-top: 12px;
+    font-family: 'Orbitron', monospace; font-size: 8px;
+    color: #1e2d50; letter-spacing: 1px;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+</style>
+</head>
+<body>
+<div class="rc-shell">
+  <div class="rc-header">
+    <div class="rc-title">PAW PATROL ROBOT</div>
+    <div class="rc-sub">REMOTE CONTROL · DEMO MODE</div>
+  </div>
+
+  <div class="camera-screen">
+    <div class="camera-grid"></div>
+    <div class="camera-dot"></div>
+    <div class="camera-corners"><span></span><span></span><span></span><span></span></div>
+    <div class="camera-label" id="cam-label">LIVE FEED · STANDBY</div>
+    <div class="oled-face" id="oled-face">◕‿◕</div>
+    <div class="paw-badge">🐾 Pi CAM</div>
+  </div>
+
+  <div class="status-row">
+    <div class="status-pill">
+      <span class="slabel">MODE</span>
+      <span class="sval amber" id="mode-val">MANUAL</span>
+    </div>
+    <div class="status-pill">
+      <span class="slabel">SENSOR</span>
+      <span class="sval green" id="sensor-val">48 cm</span>
+    </div>
+    <div class="status-pill">
+      <span class="slabel">STATUS</span>
+      <span class="sval green" id="status-val">IDLE</span>
+    </div>
+  </div>
+
+  <div class="dpad-section">
+    <div class="dpad">
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-fwd" onclick="press('forward')">
+        <svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>
+      </div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-left" onclick="press('left')">
+        <svg viewBox="0 0 24 24"><path d="M4 12l8-8v5h8v6h-8v5z"/></svg>
+      </div>
+      <div class="dpad-btn dpad-center" id="btn-stop" onclick="press('stop')">
+        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+      </div>
+      <div class="dpad-btn" id="btn-right" onclick="press('right')">
+        <svg viewBox="0 0 24 24"><path d="M20 12l-8 8v-5H4v-6h8V4z"/></svg>
+      </div>
+      <div class="dpad-empty"></div>
+      <div class="dpad-btn" id="btn-back" onclick="press('backward')">
+        <svg viewBox="0 0 24 24"><path d="M12 20l8-8h-5V4h-6v8H4z"/></svg>
+      </div>
+      <div class="dpad-empty"></div>
+    </div>
+
+    <div class="side-controls">
+      <div class="side-btn active" id="mode-manual" onclick="setMode('manual')">
+        <div class="dot"></div>MANUAL
+      </div>
+      <div class="side-btn" id="mode-auto" onclick="setMode('auto')">
+        <div class="dot"></div>AUTO PATROL
+      </div>
+      <div class="side-btn" id="mode-search" onclick="setMode('search')">
+        <div class="dot"></div>ITEM SEARCH
+      </div>
+    </div>
+  </div>
+
+  <div class="speed-section">
+    <div class="speed-label">SPEED <span id="speed-out">55%</span></div>
+    <input type="range" min="20" max="100" value="55" step="1"
+           id="speed-slider" oninput="setSpeed(this.value)"/>
+  </div>
+
+  <div class="action-row">
+    <div class="action-btn" onclick="triggerTTS()">🐾 PAW PATROL ALERT</div>
+    <div class="action-btn" onclick="toggleFace()">😊 CYCLE FACE</div>
+    <div class="action-btn" onclick="fakeSensor()">📡 SCAN ROOM</div>
+    <div class="action-btn danger" onclick="eStop()">⛔ EMERGENCY STOP</div>
+  </div>
+
+  <div class="log-box" id="log-box">
+    <div class="log-entry info"><span class="ts">[00:00]</span>PAW PATROL ROBOT ONLINE</div>
+    <div class="log-entry"><span class="ts">[00:00]</span>All systems nominal</div>
+    <div class="log-entry"><span class="ts">[00:00]</span>Awaiting command...</div>
+  </div>
+
+  <div class="kb-hint">KEYBOARD: ARROW KEYS TO DRIVE · SPACE TO STOP</div>
+</div>
+
+<script>
+  const faces = ['◕‿◕','ಠ_ಠ','◕ ◡ ◕','⊙_⊙','≧◡≦'];
+  let faceIdx=0, logCount=1, currentMode='manual', sensorSim=48;
+  const phrases = [
+    "Ryder! Obstacle ahead! No job too big, no pup too small!",
+    "Chase is on the case! Item detected!",
+    "PAW Patrol is on a roll!",
+    "Don't worry, I'll handle it! Rubble on the double!",
+    "These paws uphold the laws!"
+  ];
+
+  function ts() { return `[00:${String(logCount).padStart(2,'0')}]`; }
+
+  function addLog(msg, type='') {
+    logCount++;
+    const box = document.getElementById('log-box');
+    const el = document.createElement('div');
+    el.className = 'log-entry'+(type?' '+type:'');
+    el.innerHTML = `<span class="ts">${ts()}</span>${msg}`;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function press(dir) {
+    const ids = {forward:'btn-fwd',backward:'btn-back',left:'btn-left',right:'btn-right',stop:'btn-stop'};
+    const btn = document.getElementById(ids[dir]);
+    btn.classList.add('pressed');
+    setTimeout(()=>btn.classList.remove('pressed'), 200);
+    const faceMap   = {forward:'◕‿◕',backward:'⊙_⊙',left:'◕ ◡ ◕',right:'◕ ◡ ◕',stop:'ಠ_ಠ'};
+    const statusMap = {forward:'MOVING FWD',backward:'REVERSING',left:'TURNING L',right:'TURNING R',stop:'IDLE'};
+    const camMap    = {forward:'LIVE FEED · MOVING',backward:'LIVE FEED · REVERSE',left:'LIVE FEED · TURNING',right:'LIVE FEED · TURNING',stop:'LIVE FEED · STANDBY'};
+    document.getElementById('oled-face').textContent  = faceMap[dir];
+    document.getElementById('status-val').textContent = statusMap[dir];
+    document.getElementById('cam-label').textContent  = camMap[dir];
+    document.getElementById('status-val').className   = dir==='stop'?'sval amber':'sval green';
+    addLog('CMD → '+dir.toUpperCase());
+  }
+
+  function setMode(mode) {
+    currentMode = mode;
+    ['manual','auto','search'].forEach(m=>
+      document.getElementById('mode-'+m).classList.toggle('active',m===mode)
+    );
+    const labels = {manual:'MANUAL',auto:'AUTO',search:'SEARCH'};
+    document.getElementById('mode-val').textContent = labels[mode];
+    const logs = {
+      manual: 'Switched to manual control',
+      auto:   'Auto patrol engaged — scanning for obstacles',
+      search: 'Item search mode — YOLOv8 active'
+    };
+    addLog(logs[mode],'info');
+    if(mode==='auto')   document.getElementById('oled-face').textContent='◕‿◕';
+    if(mode==='search') document.getElementById('oled-face').textContent='⊙_⊙';
+  }
+
+  function setSpeed(val) {
+    document.getElementById('speed-out').textContent = val+'%';
+    addLog('Speed set to '+val+'%');
+  }
+
+  function toggleFace() {
+    faceIdx=(faceIdx+1)%faces.length;
+    document.getElementById('oled-face').textContent=faces[faceIdx];
+    addLog('OLED face updated');
+  }
+
+  function triggerTTS() {
+    const phrase = phrases[Math.floor(Math.random()*phrases.length)];
+    addLog('TTS: "'+phrase+'"','info');
+    document.getElementById('oled-face').textContent='≧◡≦';
+    setTimeout(()=>{document.getElementById('oled-face').textContent=faces[faceIdx];},2000);
+  }
+
+  function fakeSensor() {
+    sensorSim = Math.floor(Math.random()*80)+10;
+    document.getElementById('sensor-val').textContent = sensorSim+' cm';
+    addLog('HC-SR04: '+sensorSim+'cm distance', sensorSim<20?'warn':'');
+    if(sensorSim<20) {
+      addLog('Obstacle detected! Avoiding...','warn');
+      document.getElementById('oled-face').textContent='ಠ_ಠ';
+      document.getElementById('status-val').textContent='AVOIDING';
+      document.getElementById('status-val').className='sval amber';
+    }
+  }
+
+  function eStop() {
+    addLog('EMERGENCY STOP TRIGGERED','warn');
+    const sv = document.getElementById('status-val');
+    sv.textContent='E-STOP'; sv.className='sval red';
+    document.getElementById('oled-face').textContent='ಠ_ಠ';
+    document.getElementById('cam-label').textContent='LIVE FEED · STOPPED';
+    setMode('manual');
+  }
+
+  setInterval(()=>{
+    if(currentMode==='auto') {
+      sensorSim=Math.floor(Math.random()*120)+15;
+      document.getElementById('sensor-val').textContent=sensorSim+' cm';
+      if(sensorSim<25) {
+        addLog('Obstacle at '+sensorSim+'cm — turning','warn');
+        document.getElementById('oled-face').textContent='ಠ_ಠ';
+      }
+    }
+  },3000);
+
+  document.addEventListener('keydown',e=>{
+    const map={ArrowUp:'forward',ArrowDown:'backward',ArrowLeft:'left',ArrowRight:'right',' ':'stop'};
+    if(map[e.key]){e.preventDefault();press(map[e.key]);}
+  });
+</script>
+</body>
+</html>
