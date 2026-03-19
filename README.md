@@ -1,4 +1,4 @@
-# PAW Patrol Home Surveillance Robot 🐾
+# PAW Patrol Home Surveillance Robot
 
 A Paw Patrol-themed home surveillance robot built on a **Raspberry Pi 4**. It patrols autonomously, avoids obstacles, streams live video, detects personal items via YOLOv8, and displays animated OLED expressions. Manual control is available through a mobile-friendly web interface.
 
