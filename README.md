@@ -121,4 +121,3 @@ Open `http://<pi-ip>:8080` on any phone or browser.
 - **32-bit OS required** — do not upgrade to 64-bit Bullseye (hardware compatibility)
 - **Use `yolov8n.pt` only** — larger models are too slow for real-time use on Pi 4
 - **Power bank** — do not use a MacBook USB-C charger (Power Delivery issues)
-- **Non-printable Unicode** — if copying code from PDFs, watch for hidden characters causing syntax errors
